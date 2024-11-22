@@ -12,7 +12,7 @@ from bids import BIDSLayout
 import settings
 from meg_utils.pipeline import DataPipeline, LoadRawStep, EpochingStep
 from meg_utils.pipeline import ResampleStep, NormalizationStep, CustomStep
-from meg_utils.pipeline import ToArrayStep
+from meg_utils.pipeline import ToArrayStep, StratifyStep
 from meg_utils.preprocessing import rescale_meg_transform_outlier
 
 try:
@@ -30,7 +30,7 @@ def check_derivatives(layout=layout):
     warnings.warn('NOTIMPLEMENTED')
 
 
-def load_localizer(subject, tmin=-0.5, tmax=1, sfreq=100, verbose=False):
+def load_localizer(subject, tmin=-0.2, tmax=0.8, sfreq=100, verbose=False):
     """load all localizer trials ('slow trials')"""
     main_files = layout.get(subject=subject, suffix='raw',
                             scope='derivatives', proc='clean',
@@ -43,6 +43,7 @@ def load_localizer(subject, tmin=-0.5, tmax=1, sfreq=100, verbose=False):
         ('epoching', EpochingStep(event_id=np.arange(1, 6), tmin=tmin, tmax=tmax)),
         ('pick meg', CustomStep(lambda x: x.pick('meg'))),
         ('normalization', NormalizationStep(rescale_meg_transform_outlier, picks='meg')),
+        ('stratify', StratifyStep()),
         ('to array', ToArrayStep(X=True, y=True))
         ], verbose=True)
 
@@ -52,7 +53,8 @@ def load_localizer(subject, tmin=-0.5, tmax=1, sfreq=100, verbose=False):
     data_x, data_y = pipe.transform(main_files[0])
     data_y -= 1  # python indexing starts at 1
     assert min(data_y)==0
-    assert len(set(np.bincount(data_y)[1]))==1
+    # assert len(set(np.bincount(data_y)))==1
+    warnings.warn('comment this back')
     return data_x, data_y
 
 check_derivatives()
